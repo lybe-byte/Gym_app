@@ -1,0 +1,105 @@
+import type { Category, TemplateEntry } from '@/types';
+
+export const DEFAULT_MOVEMENTS: { name: string; category: Category }[] = [
+  // Legs
+  { name: 'Squat', category: 'Legs' },
+  { name: 'Front Squat', category: 'Legs' },
+  { name: 'Hack Squat', category: 'Legs' },
+  { name: 'Leg Press', category: 'Legs' },
+  { name: 'Romanian Deadlift', category: 'Legs' },
+  { name: 'Walking Lunge', category: 'Legs' },
+  { name: 'Bulgarian Split Squat', category: 'Legs' },
+  { name: 'Leg Extension', category: 'Legs' },
+  { name: 'Leg Curl', category: 'Legs' },
+  { name: 'Hip Thrust', category: 'Legs' },
+  { name: 'Calf Raise', category: 'Legs' },
+  { name: 'Goblet Squat', category: 'Legs' },
+  // Back
+  { name: 'Deadlift', category: 'Back' },
+  { name: 'Barbell Row', category: 'Back' },
+  { name: 'Dumbbell Row', category: 'Back' },
+  { name: 'Seated Cable Row', category: 'Back' },
+  { name: 'T-Bar Row', category: 'Back' },
+  { name: 'Pull-Up', category: 'Back' },
+  { name: 'Chin-Up', category: 'Back' },
+  { name: 'Lat Pulldown', category: 'Back' },
+  { name: 'Face Pull', category: 'Back' },
+  { name: 'Shrug', category: 'Back' },
+  // Chest
+  { name: 'Bench Press', category: 'Chest' },
+  { name: 'Incline Bench Press', category: 'Chest' },
+  { name: 'Dumbbell Bench Press', category: 'Chest' },
+  { name: 'Incline Dumbbell Press', category: 'Chest' },
+  { name: 'Cable Fly', category: 'Chest' },
+  { name: 'Dumbbell Fly', category: 'Chest' },
+  { name: 'Chest Dip', category: 'Chest' },
+  { name: 'Push-Up', category: 'Chest' },
+  { name: 'Machine Chest Press', category: 'Chest' },
+  // Shoulders
+  { name: 'Overhead Press', category: 'Shoulders' },
+  { name: 'Dumbbell Shoulder Press', category: 'Shoulders' },
+  { name: 'Arnold Press', category: 'Shoulders' },
+  { name: 'Lateral Raise', category: 'Shoulders' },
+  { name: 'Front Raise', category: 'Shoulders' },
+  { name: 'Reverse Fly', category: 'Shoulders' },
+  { name: 'Upright Row', category: 'Shoulders' },
+  // Arms
+  { name: 'Barbell Curl', category: 'Arms' },
+  { name: 'Dumbbell Curl', category: 'Arms' },
+  { name: 'Hammer Curl', category: 'Arms' },
+  { name: 'Preacher Curl', category: 'Arms' },
+  { name: 'Cable Curl', category: 'Arms' },
+  { name: 'Tricep Pushdown', category: 'Arms' },
+  { name: 'Overhead Tricep Extension', category: 'Arms' },
+  { name: 'Skull Crusher', category: 'Arms' },
+  { name: 'Close-Grip Bench Press', category: 'Arms' },
+  { name: 'Tricep Dip', category: 'Arms' },
+  // Core
+  { name: 'Plank', category: 'Core' },
+  { name: 'Hanging Leg Raise', category: 'Core' },
+  { name: 'Cable Crunch', category: 'Core' },
+  { name: 'Ab Wheel Rollout', category: 'Core' },
+  { name: 'Dead Bug', category: 'Core' },
+  { name: 'Russian Twist', category: 'Core' },
+  { name: 'Decline Sit-Up', category: 'Core' },
+  // Cardio
+  { name: 'Running', category: 'Cardio' },
+  { name: 'Rowing Machine', category: 'Cardio' },
+  { name: 'Stationary Bike', category: 'Cardio' },
+  { name: 'Jump Rope', category: 'Cardio' },
+  { name: 'Stair Climber', category: 'Cardio' },
+];
+
+export const DEFAULT_TEMPLATES: { name: string; entries: TemplateEntry[] }[] = [
+  {
+    name: 'Full Body A',
+    entries: [
+      { movementName: 'Squat', reps: 5, weight: 60, unit: 'kg' },
+      { movementName: 'Bench Press', reps: 5, weight: 50, unit: 'kg' },
+      { movementName: 'Barbell Row', reps: 5, weight: 40, unit: 'kg' },
+      { movementName: 'Overhead Press', reps: 8, weight: 30, unit: 'kg' },
+      { movementName: 'Barbell Curl', reps: 10, weight: 20, unit: 'kg' },
+    ],
+  },
+  {
+    name: 'Full Body B',
+    entries: [
+      { movementName: 'Deadlift', reps: 5, weight: 80, unit: 'kg' },
+      { movementName: 'Incline Bench Press', reps: 8, weight: 40, unit: 'kg' },
+      { movementName: 'Lat Pulldown', reps: 10, weight: 45, unit: 'kg' },
+      { movementName: 'Lateral Raise', reps: 12, weight: 8, unit: 'kg' },
+      { movementName: 'Tricep Pushdown', reps: 12, weight: 25, unit: 'kg' },
+    ],
+  },
+  {
+    name: 'Full Body C',
+    entries: [
+      { movementName: 'Front Squat', reps: 6, weight: 50, unit: 'kg' },
+      { movementName: 'Dumbbell Bench Press', reps: 10, weight: 20, unit: 'kg' },
+      { movementName: 'Seated Cable Row', reps: 10, weight: 40, unit: 'kg' },
+      { movementName: 'Arnold Press', reps: 10, weight: 14, unit: 'kg' },
+      { movementName: 'Hammer Curl', reps: 12, weight: 12, unit: 'kg' },
+      { movementName: 'Hanging Leg Raise', reps: 12, weight: 0, unit: 'kg' },
+    ],
+  },
+];
