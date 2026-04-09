@@ -88,20 +88,20 @@ export default function WorkoutForm({ movements, lastEntry, unit, onLog }: Worko
         )}
       </div>
 
-      <div className="flex gap-3 mb-3">
+      <div className="grid grid-cols-2 gap-2 mb-3">
         <input
           type="number"
           placeholder="Reps"
           value={reps}
           onChange={(e) => setReps(e.target.value)}
-          className="flex-1 bg-bg-primary text-text-primary text-lg py-3.5 px-4 rounded-xl border border-border-color focus:border-accent focus:outline-none transition-colors"
+          className="w-full min-w-0 bg-bg-primary text-text-primary text-base py-3.5 px-3 rounded-xl border border-border-color focus:border-accent focus:outline-none transition-colors"
         />
         <input
           type="number"
           placeholder={`Weight (${unit})`}
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
-          className="flex-1 bg-bg-primary text-text-primary text-lg py-3.5 px-4 rounded-xl border border-border-color focus:border-accent focus:outline-none transition-colors"
+          className="w-full min-w-0 bg-bg-primary text-text-primary text-base py-3.5 px-3 rounded-xl border border-border-color focus:border-accent focus:outline-none transition-colors"
         />
       </div>
 
