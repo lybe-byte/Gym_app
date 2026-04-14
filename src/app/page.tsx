@@ -14,11 +14,12 @@ import {
   generateId,
   getRuns,
   getWeeklyStepData,
-  getRoutePoints
+  getRoutePoints,
 } from '@/lib/firestore';
 import WorkoutForm from '@/components/WorkoutForm';
 import WorkoutList from '@/components/WorkoutList';
 import MapView from '@/components/MapView';
+import OutdoorTracker from '@/components/OutdoorTracker';
 import { SkeletonList } from '@/components/Skeleton';
 import { CheckCircle, Trophy, Activity, Footprints, Flame } from 'lucide-react';
 import type { Workout, WorkoutEntry, Movement, Run, StepData, RoutePoint } from '@/types';
@@ -46,7 +47,7 @@ export default function HomePage() {
         getWorkoutByDate(user.uid, todayDateString()),
         getMovements(user.uid),
         getRuns(user.uid),
-        getWeeklyStepData(user.uid, weekStartStr, todayDateString())
+        getWeeklyStepData(user.uid, weekStartStr, todayDateString()),
       ]);
       setWorkout(w);
       setMovements(m);
@@ -91,23 +92,23 @@ export default function HomePage() {
         const id = await createWorkout(user.uid, newWorkout);
         setWorkout({ id, ...newWorkout });
       } else {
-        setWorkout((prev) => prev ? { ...prev, entries: [...prev.entries, entry] } : prev);
+        setWorkout((prev) => (prev ? { ...prev, entries: [...prev.entries, entry] } : prev));
         await addEntryToWorkout(user.uid, workout.id, entry);
       }
     },
-    [user, workout]
+    [user, workout],
   );
 
   const handleUpdateEntries = useCallback(
     async (entries: WorkoutEntry[]) => {
       if (!user || !workout) return;
-      setWorkout((prev) => prev ? { ...prev, entries } : prev);
+      setWorkout((prev) => (prev ? { ...prev, entries } : prev));
       await updateWorkoutEntries(user.uid, workout.id, entries);
       if (entries.length === 0) {
         setWorkout(null);
       }
     },
-    [user, workout]
+    [user, workout],
   );
 
   const handleDeleteMovement = useCallback(
@@ -115,10 +116,10 @@ export default function HomePage() {
       if (!workout) return;
       const removed = workout.entries.filter((e) => e.movementName === movementName);
       const remaining = workout.entries.filter((e) => e.movementName !== movementName);
-      setWorkout((prev) => prev ? { ...prev, entries: remaining } : prev);
+      setWorkout((prev) => (prev ? { ...prev, entries: remaining } : prev));
       showToast(`Removed ${movementName}`, () => {
         setWorkout((prev) =>
-          prev ? { ...prev, entries: [...prev.entries, ...removed] } : prev
+          prev ? { ...prev, entries: [...prev.entries, ...removed] } : prev,
         );
         if (user && workout) {
           updateWorkoutEntries(user.uid, workout.id, [...remaining, ...removed]);
@@ -128,7 +129,7 @@ export default function HomePage() {
         updateWorkoutEntries(user.uid, workout.id, remaining);
       }
     },
-    [workout, user, showToast]
+    [workout, user, showToast],
   );
 
   const handleFinish = useCallback(async () => {
@@ -152,6 +153,7 @@ export default function HomePage() {
 
   const lastEntry = workout?.entries?.length ? workout.entries[workout.entries.length - 1] : null;
 
+  /* ── Loading skeleton ─────────────────────────────────── */
   if (loading) {
     return (
       <div className="pt-6">
@@ -167,46 +169,43 @@ export default function HomePage() {
   const weeklyCalories = steps.reduce((sum, s) => sum + (s.calories || 0), 0);
 
   return (
-    <div className="pt-6 pb-20 animate-fade-in flex flex-col gap-8">
-      
-      {/* ─── Health Summary ─── */}
+    <div className="pt-6 pb-20 animate-fade-in flex flex-col gap-6">
+      {/* ─── Weekly Summary ───────────────────────────────── */}
       <section>
         <h2 className="text-xl font-bold text-text-primary mb-3">Weekly Summary</h2>
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-bg-secondary p-3 rounded-2xl border border-border-color flex flex-col justify-center items-center gap-1 shadow-card-shadow">
-            <Footprints className="text-accent mb-1" size={24} />
-            <span className="text-xs text-text-tertiary">Steps</span>
-            <span className="font-bold text-lg">{weeklySteps.toLocaleString()}</span>
-          </div>
-          <div className="bg-bg-secondary p-3 rounded-2xl border border-border-color flex flex-col justify-center items-center gap-1 shadow-card-shadow">
-            <Activity className="text-success mb-1" size={24} />
-            <span className="text-xs text-text-tertiary">Distance</span>
-            <span className="font-bold text-lg">{weeklyDistance.toFixed(1)} km</span>
-          </div>
-          <div className="bg-bg-secondary p-3 rounded-2xl border border-border-color flex flex-col justify-center items-center gap-1 shadow-card-shadow">
-            <Flame className="text-warning mb-1" size={24} />
-            <span className="text-xs text-text-tertiary">Calories</span>
-            <span className="font-bold text-lg">{weeklyCalories.toLocaleString()}</span>
-          </div>
+          <SummaryCard icon={<Footprints size={22} />} label="Steps" value={weeklySteps.toLocaleString()} color="text-accent" />
+          <SummaryCard icon={<Activity size={22} />} label="Distance" value={`${weeklyDistance.toFixed(1)} km`} color="text-success" />
+          <SummaryCard icon={<Flame size={22} />} label="Calories" value={weeklyCalories.toLocaleString()} color="text-warning" />
         </div>
       </section>
 
-      {/* ─── Latest Activity ─── */}
+      {/* ─── Latest Run Map Preview ───────────────────────── */}
       {runs.length > 0 && (
         <section>
           <div className="flex justify-between items-end mb-3">
             <h2 className="text-xl font-bold text-text-primary">Latest Run</h2>
-            <span className="text-sm text-text-tertiary">{new Date(runs[0].createdAt).toLocaleDateString()}</span>
+            <span className="text-sm text-text-tertiary">
+              {new Date(runs[0].createdAt).toLocaleDateString()}
+            </span>
           </div>
-          <MapView route={latestRoute} height="180px" />
-          <div className="flex justify-between px-2 mt-2">
-            <span className="text-sm text-text-secondary">{(runs[0].distance / 1000).toFixed(2)} km</span>
-            <span className="text-sm text-text-secondary">{Math.floor(runs[0].duration / 60)}:{(runs[0].duration % 60).toString().padStart(2, '0')}</span>
+          <MapView route={latestRoute} height="160px" />
+          <div className="flex justify-between px-1 mt-2 text-sm text-text-secondary">
+            <span>{(runs[0].distance / 1000).toFixed(2)} km</span>
+            <span>
+              {Math.floor(runs[0].duration / 60)}:{(runs[0].duration % 60).toString().padStart(2, '0')}
+            </span>
           </div>
         </section>
       )}
 
-      {/* ─── Strength Training ─── */}
+      {/* ─── Outdoor Tracking (inline) ────────────────────── */}
+      <section>
+        <h2 className="text-xl font-bold text-text-primary mb-3">Outdoor Activity</h2>
+        <OutdoorTracker />
+      </section>
+
+      {/* ─── Strength Training ────────────────────────────── */}
       <section>
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-text-primary mb-1">Today&apos;s Workout</h1>
@@ -215,12 +214,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        <WorkoutForm
-          movements={movements}
-          lastEntry={lastEntry}
-          unit={unit}
-          onLog={handleLog}
-        />
+        <WorkoutForm movements={movements} lastEntry={lastEntry} unit={unit} onLog={handleLog} />
 
         {workout && workout.entries.length > 0 && (
           <>
@@ -236,30 +230,37 @@ export default function HomePage() {
                 finishState === 'done'
                   ? 'bg-success text-white'
                   : finishState === 'confirm'
-                  ? 'bg-warning text-black animate-glow-pulse'
-                  : 'bg-bg-secondary text-text-primary border border-border-color hover:border-accent shadow-card-shadow'
+                    ? 'bg-warning text-black animate-glow-pulse'
+                    : 'bg-bg-secondary text-text-primary border border-border-color hover:border-accent shadow-card-shadow'
               }`}
             >
               {finishState === 'done' ? (
-                <span className="flex items-center justify-center gap-2"><CheckCircle size={20} /> Done!</span>
+                <span className="flex items-center justify-center gap-2">
+                  <CheckCircle size={20} /> Done!
+                </span>
               ) : finishState === 'confirm' ? (
                 'Tap again to confirm'
               ) : (
-                <span className="flex items-center justify-center gap-2"><Trophy size={20} /> Finish Workout</span>
+                <span className="flex items-center justify-center gap-2">
+                  <Trophy size={20} /> Finish Workout
+                </span>
               )}
             </button>
           </>
         )}
       </section>
 
-      {/* Undo toast */}
+      {/* ─── Toast ────────────────────────────────────────── */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
           <div className="bg-bg-secondary border border-border-color rounded-xl px-5 py-3 shadow-card-shadow-lg flex items-center gap-3">
             <span className="text-text-primary text-sm">{toast.message}</span>
             {toast.undo && (
               <button
-                onClick={() => { toast.undo?.(); setToast(null); }}
+                onClick={() => {
+                  toast.undo?.();
+                  setToast(null);
+                }}
                 className="text-accent font-semibold text-sm hover:underline"
               >
                 Undo
@@ -268,6 +269,27 @@ export default function HomePage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Reusable summary card ──────────────────────────────── */
+function SummaryCard({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-bg-secondary p-3 rounded-2xl border border-border-color flex flex-col justify-center items-center gap-1 shadow-card-shadow">
+      <span className={`${color} mb-0.5`}>{icon}</span>
+      <span className="text-xs text-text-tertiary">{label}</span>
+      <span className="font-bold text-lg">{value}</span>
     </div>
   );
 }
