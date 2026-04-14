@@ -25,6 +25,7 @@ import MapView from '@/components/MapView';
 import OutdoorTracker from '@/components/OutdoorTracker';
 import GoalsPanel from '@/components/GoalsPanel';
 import HeatmapView from '@/components/HeatmapView';
+import DailyStatsDialog from '@/components/DailyStatsDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { SkeletonList } from '@/components/Skeleton';
 import {
@@ -48,10 +49,11 @@ export default function HomePage() {
   const [finishState, setFinishState] = useState<'idle' | 'confirm' | 'done'>('idle');
   const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
 
-  // Latest run & heatmap toggle state
+  // Latest run & heatmap logic
   const [mapExpanded, setMapExpanded] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [confirmDeleteRun, setConfirmDeleteRun] = useState(false);
+  const [activeMetric, setActiveMetric] = useState<'steps' | 'distance' | 'calories' | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -215,9 +217,27 @@ export default function HomePage() {
         
         <h2 className="text-xl font-bold text-text-primary mb-3">Last 7 Days</h2>
         <div className="grid grid-cols-3 gap-3">
-          <SummaryCard icon={<Footprints size={22} />} label="Steps" value={weeklySteps.toLocaleString()} color="text-accent" />
-          <SummaryCard icon={<Activity size={22} />} label="Distance" value={`${weeklyDistance.toFixed(1)} km`} color="text-success" />
-          <SummaryCard icon={<Flame size={22} />} label="Calories" value={weeklyCalories.toLocaleString()} color="text-warning" />
+          <SummaryCard 
+            icon={<Footprints size={22} />} 
+            label="Steps" 
+            value={weeklySteps.toLocaleString()} 
+            color="text-accent" 
+            onClick={() => setActiveMetric('steps')}
+          />
+          <SummaryCard 
+            icon={<Activity size={22} />} 
+            label="Distance" 
+            value={`${weeklyDistance.toFixed(1)} km`} 
+            color="text-success" 
+            onClick={() => setActiveMetric('distance')}
+          />
+          <SummaryCard 
+            icon={<Flame size={22} />} 
+            label="Calories" 
+            value={weeklyCalories.toLocaleString()} 
+            color="text-warning" 
+            onClick={() => setActiveMetric('calories')}
+          />
         </div>
       </section>
 
@@ -379,6 +399,15 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* ─── Daily Breakdowns Dialog ──────────────────────── */}
+      <DailyStatsDialog 
+        isOpen={activeMetric !== null}
+        onClose={() => setActiveMetric(null)}
+        metric={activeMetric}
+        stepsData={steps}
+        runsData={runs}
+      />
     </div>
   );
 }
@@ -389,17 +418,22 @@ function SummaryCard({
   label,
   value,
   color,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   color: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="bg-bg-secondary p-3 rounded-2xl border border-border-color flex flex-col justify-center items-center gap-1 shadow-card-shadow">
-      <span className={`${color} mb-0.5`}>{icon}</span>
+    <button 
+      onClick={onClick}
+      className={`bg-bg-secondary p-3 rounded-2xl border border-border-color flex flex-col justify-center items-center gap-1 shadow-card-shadow relative overflow-hidden group w-full text-center transition-all ${onClick ? 'hover:bg-bg-tertiary/50 hover:scale-[1.02] active:scale-[0.98]' : ''}`}
+    >
+      <span className={`${color} mb-0.5 group-hover:scale-110 transition-transform`}>{icon}</span>
       <span className="text-xs text-text-tertiary">{label}</span>
       <span className="font-bold text-lg">{value}</span>
-    </div>
+    </button>
   );
 }
