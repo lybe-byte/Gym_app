@@ -52,9 +52,6 @@ export default function HeatmapView({ height = '300px' }: HeatmapViewProps) {
     return () => unsub();
   }, []);
 
-  // Ensure the component does not try to read Firestore before the user is authenticated:
-  if (!user) return null;
-
   // Center on latest point, or default to Helsinki
   const defaultCenter: [number, number] = useMemo(() => {
     if (heatmapData.length > 0) {
@@ -63,6 +60,9 @@ export default function HeatmapView({ height = '300px' }: HeatmapViewProps) {
     }
     return [60.1699, 24.9384]; // Helsinki
   }, [heatmapData]);
+
+  // Ensure the component does not try to render map layers or data before user auth resolves
+  if (!user) return null;
 
   if (!isMounted) {
     return (
