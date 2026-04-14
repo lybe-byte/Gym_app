@@ -212,3 +212,42 @@ export async function getWeeklyStepData(userId: string, startDate: string, endDa
     .filter((s) => s.date >= startDate && s.date <= endDate)
     .sort((a, b) => a.date.localeCompare(b.date));
 }
+
+// ─── Heatmap & Goals ─────────────────────────────────────────
+
+import type { WeeklyGoals } from '@/types';
+
+export async function saveWeeklyGoals(userId: string, goals: WeeklyGoals): Promise<void> {
+  const ref = doc(db(), 'users', userId, 'goals', 'weekly');
+  await setDoc(ref, goals);
+}
+
+export async function getWeeklyGoals(userId: string): Promise<WeeklyGoals | null> {
+  const snap = await getDoc(doc(db(), 'users', userId, 'goals', 'weekly'));
+  if (!snap.exists()) return null;
+  return snap.data() as WeeklyGoals;
+}
+
+export async function getAllRoutePoints(userId: string, limitRuns: number = 30): Promise<RoutePoint[]> {
+  // To prevent massive reads, we grab the latest X runs and their routes
+  const runsSnap = await getDocs(
+    query(collection(db(), 'users', userId, 'runs'), orderBy('createdAt', 'desc'))
+  );
+  
+  const recentRuns = runsSnap.docs.slice(0, limitRuns);
+  if (recentRuns.length === 0) return [];
+  
+  const allPts: RoutePoint[] = [];
+  
+  // Note: For production, consider storing a simplified coarse string of points directly on the run doc 
+  // or a global heatmap doc to save reads. We'll do parallel fetches for now.
+  const promises = recentRuns.map(async (runDoc) => {
+    const ptsSnap = await getDocs(collection(db(), 'users', userId, 'runs', runDoc.id, 'routePoints'));
+    return ptsSnap.docs.map(d => d.data() as RoutePoint);
+  });
+  
+  const results = await Promise.all(promises);
+  results.forEach(pts => allPts.push(...pts));
+  
+  return allPts;
+}

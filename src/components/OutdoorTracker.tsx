@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocationTracking } from '@/lib/hooks/useLocationTracking';
 import { usePedometer } from '@/lib/hooks/usePedometer';
@@ -19,6 +19,9 @@ import {
   Route,
   ChevronDown,
   ChevronUp,
+  CloudRain,
+  Wind,
+  Thermometer,
 } from 'lucide-react';
 import type { Run } from '@/types';
 
@@ -39,6 +42,30 @@ export default function OutdoorTracker() {
   const pedometer = usePedometer();
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // Weather state
+  const [weather, setWeather] = useState<{ temp: number; wind: number; rainProb: number } | null>(null);
+
+  // Fetch weather on mount
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current=temperature_2m,wind_speed_10m,precipitation_probability`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.current) {
+          setWeather({
+            temp: data.current.temperature_2m,
+            wind: data.current.wind_speed_10m,
+            rainProb: data.current.precipitation_probability,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch weather:", err);
+      }
+    });
+  }, []);
 
   const handleStart = async () => {
     if (pedometer.isAvailable === false) {
@@ -81,17 +108,39 @@ export default function OutdoorTracker() {
   // ── Idle state — show the start button ─────────────────
   if (!tracker.isTracking) {
     return (
-      <button
-        onClick={handleStart}
-        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-lg
-                   bg-gradient-to-r from-emerald-500 to-teal-500 text-white
-                   shadow-[0_4px_20px_rgba(16,185,129,0.35)]
-                   hover:shadow-[0_6px_28px_rgba(16,185,129,0.5)]
-                   active:scale-[0.97] transition-all"
-      >
-        <MapPin size={22} />
-        Start Outdoor Workout
-      </button>
+      <div className="flex flex-col gap-3">
+        {/* Weather Preview */}
+        {weather && (
+          <div className="flex items-center justify-between px-4 py-3 bg-bg-secondary border border-border-color rounded-2xl shadow-card-shadow animate-fade-in text-sm">
+            <div className="flex items-center gap-2">
+              <Thermometer size={18} className="text-accent" />
+              <span className="font-bold">{weather.temp}°C</span>
+            </div>
+            <div className="w-px h-6 bg-border-color" />
+            <div className="flex items-center gap-2">
+              <Wind size={18} className="text-info" />
+              <span className="font-bold">{weather.wind} km/h</span>
+            </div>
+            <div className="w-px h-6 bg-border-color" />
+            <div className="flex items-center gap-2">
+              <CloudRain size={18} className="text-info" />
+              <span className="font-bold">{weather.rainProb}% rain</span>
+            </div>
+          </div>
+        )}
+        
+        <button
+          onClick={handleStart}
+          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-lg
+                     bg-gradient-to-r from-emerald-500 to-teal-500 text-white
+                     shadow-[0_4px_20px_rgba(16,185,129,0.35)]
+                     hover:shadow-[0_6px_28px_rgba(16,185,129,0.5)]
+                     active:scale-[0.97] transition-all"
+        >
+          <MapPin size={22} />
+          Start Outdoor Workout
+        </button>
+      </div>
     );
   }
 

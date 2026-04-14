@@ -16,17 +16,21 @@ import {
   getRuns,
   getWeeklyStepData,
   getRoutePoints,
+  getAllRoutePoints,
   deleteRun,
+  getWorkouts,
 } from '@/lib/firestore';
 import WorkoutForm from '@/components/WorkoutForm';
 import WorkoutList from '@/components/WorkoutList';
 import MapView from '@/components/MapView';
 import OutdoorTracker from '@/components/OutdoorTracker';
+import GoalsPanel from '@/components/GoalsPanel';
+import HeatmapView from '@/components/HeatmapView';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { SkeletonList } from '@/components/Skeleton';
 import {
   CheckCircle, Trophy, Activity, Footprints, Flame,
-  Maximize2, Trash2, ExternalLink,
+  Maximize2, Trash2, ExternalLink, Map as MapIcon,
 } from 'lucide-react';
 import type { Workout, WorkoutEntry, Movement, Run, StepData, RoutePoint } from '@/types';
 
@@ -39,12 +43,15 @@ export default function HomePage() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [steps, setSteps] = useState<StepData[]>([]);
   const [latestRoute, setLatestRoute] = useState<RoutePoint[]>([]);
+  const [heatmapRoute, setHeatmapRoute] = useState<RoutePoint[]>([]);
+  const [weeklyWorkoutsCount, setWeeklyWorkoutsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [finishState, setFinishState] = useState<'idle' | 'confirm' | 'done'>('idle');
   const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
 
-  // Latest run expanded map & delete confirm
+  // Latest run & heatmap toggle state
   const [mapExpanded, setMapExpanded] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const [confirmDeleteRun, setConfirmDeleteRun] = useState(false);
 
   useEffect(() => {
@@ -54,16 +61,23 @@ export default function HomePage() {
       weekStart.setDate(weekStart.getDate() - 7);
       const weekStartStr = weekStart.toISOString().slice(0, 10);
 
-      const [w, m, r, s] = await Promise.all([
+      const [w, m, r, s, hP, allW] = await Promise.all([
         getWorkoutByDate(user.uid, todayDateString()),
         getMovements(user.uid),
         getRuns(user.uid),
         getWeeklyStepData(user.uid, weekStartStr, todayDateString()),
+        getAllRoutePoints(user.uid, 30),
+        getWorkouts(user.uid),
       ]);
       setWorkout(w);
       setMovements(m);
       setRuns(r);
       setSteps(s);
+      setHeatmapRoute(hP);
+
+      // Filter workouts within the last 7 days for the goals counter
+      const recentW = allW.filter((workout) => workout.date >= weekStartStr);
+      setWeeklyWorkoutsCount(recentW.length);
 
       if (r.length > 0) {
         const pts = await getRoutePoints(user.uid, r[0].id);
@@ -193,9 +207,16 @@ export default function HomePage() {
 
   return (
     <div className="pt-6 pb-20 animate-fade-in flex flex-col gap-6">
-      {/* ─── Weekly Summary ───────────────────────────────── */}
+      {/* ─── Weekly Summary & Goals ───────────────────────── */}
       <section>
-        <h2 className="text-xl font-bold text-text-primary mb-3">Weekly Summary</h2>
+        <GoalsPanel 
+          currentDistance={weeklyDistance * 1000} 
+          currentSteps={weeklySteps} 
+          currentCalories={weeklyCalories} 
+          currentWorkouts={weeklyWorkoutsCount} 
+        />
+        
+        <h2 className="text-xl font-bold text-text-primary mb-3">Last 7 Days</h2>
         <div className="grid grid-cols-3 gap-3">
           <SummaryCard icon={<Footprints size={22} />} label="Steps" value={weeklySteps.toLocaleString()} color="text-accent" />
           <SummaryCard icon={<Activity size={22} />} label="Distance" value={`${weeklyDistance.toFixed(1)} km`} color="text-success" />
@@ -203,58 +224,79 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Latest Run Map Preview (improved) ────────────── */}
-      {latestRun && (
+      {/* ─── Activity Map Preview ─────────────────────────── */}
+      {(latestRun || heatmapRoute.length > 0) && (
         <section>
           <div className="flex justify-between items-end mb-3">
-            <h2 className="text-xl font-bold text-text-primary">Latest Run</h2>
-            <span className="text-sm text-text-tertiary">
-              {new Date(latestRun.createdAt).toLocaleDateString()}
-            </span>
+            <h2 className="text-xl font-bold text-text-primary">
+              {showHeatmap ? 'Personal Heatmap' : 'Latest Run'}
+            </h2>
+            <div className="flex bg-bg-secondary p-1 rounded-lg border border-border-color shadow-sm">
+              <button
+                onClick={() => setShowHeatmap(false)}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${!showHeatmap ? 'bg-accent text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
+              >
+                Latest
+              </button>
+              <button
+                onClick={() => setShowHeatmap(true)}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${showHeatmap ? 'bg-info text-white shadow-sm' : 'text-text-tertiary hover:text-text-primary'}`}
+              >
+                Heatmap
+              </button>
+            </div>
           </div>
 
           <div className="bg-bg-secondary rounded-2xl border border-border-color shadow-card-shadow overflow-hidden">
-            {/* Map — toggle between compact and expanded */}
-            <MapView route={latestRoute} height={mapExpanded ? '350px' : '160px'} />
+            {/* Map — toggle between latest route and heatmap */}
+            {!showHeatmap && latestRun ? (
+              <MapView route={latestRoute} height={mapExpanded ? '350px' : '160px'} />
+            ) : showHeatmap ? (
+              <HeatmapView routePoints={heatmapRoute} height={mapExpanded ? '350px' : '160px'} />
+            ) : null}
 
             {/* Stats bar */}
-            <div className="flex items-center justify-between px-4 py-3 text-sm">
-              <div className="flex gap-4 text-text-secondary">
-                <span className="font-semibold">{(latestRun.distance / 1000).toFixed(2)} km</span>
-                <span>
-                  {Math.floor(latestRun.duration / 60)}:{(latestRun.duration % 60).toString().padStart(2, '0')}
-                </span>
-                {latestRun.duration > 0 && (
-                  <span className="text-text-tertiary">
-                    {((latestRun.distance / 1000) / (latestRun.duration / 3600)).toFixed(1)} km/h
+            {!showHeatmap && latestRun && (
+              <div className="flex items-center justify-between px-4 py-3 text-sm flex-wrap gap-2">
+                <div className="flex gap-4 text-text-secondary">
+                  <span className="font-semibold">{(latestRun.distance / 1000).toFixed(2)} km</span>
+                  <span>
+                    {Math.floor(latestRun.duration / 60)}:{(latestRun.duration % 60).toString().padStart(2, '0')}
                   </span>
-                )}
-              </div>
+                  {latestRun.duration > 0 && (
+                    <span className="text-text-tertiary">
+                      {((latestRun.distance / 1000) / (latestRun.duration / 3600)).toFixed(1)} km/h
+                    </span>
+                  )}
+                </div>
 
-              {/* Action buttons */}
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setMapExpanded((e) => !e)}
-                  className="p-1.5 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent/10 active:scale-90 transition-all"
-                  title={mapExpanded ? 'Collapse map' : 'Expand map'}
-                >
-                  <Maximize2 size={16} />
-                </button>
-                <button
-                  onClick={() => router.push('/history')}
-                  className="p-1.5 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent/10 active:scale-90 transition-all"
-                  title="View in History"
-                >
-                  <ExternalLink size={16} />
-                </button>
-                <button
-                  onClick={() => setConfirmDeleteRun(true)}
-                  className="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 active:scale-90 transition-all"
-                  title="Delete run"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {/* Action buttons */}
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => router.push('/history')}
+                    className="p-1.5 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent/10 active:scale-90 transition-all"
+                    title="View in History"
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteRun(true)}
+                    className="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 active:scale-90 transition-all"
+                    title="Delete run"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
+            )}
+            
+            <div className="flex justify-end px-4 py-2 border-t border-border-color/50">
+              <button
+                onClick={() => setMapExpanded((e) => !e)}
+                className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold rounded-lg text-text-tertiary hover:text-info hover:bg-info/10 transition-all"
+              >
+                <Maximize2 size={14} /> {mapExpanded ? 'Collapse' : 'Expand View'}
+              </button>
             </div>
           </div>
         </section>

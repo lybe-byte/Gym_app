@@ -71,3 +71,10 @@ export interface StepData {
   calories: number;
   updatedAt: number;
 }
+
+export interface WeeklyGoals {
+  distance: number; // in meters
+  steps: number;
+  calories: number;
+  workouts: number;
+}
