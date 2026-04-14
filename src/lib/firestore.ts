@@ -142,3 +142,64 @@ export function todayDateString(): string {
 export function generateId(): string {
   return doc(collection(db(), '_')).id;
 }
+
+// ─── Outdoor Activities (Runs) ───────────────────────────────
+
+import type { Run, RoutePoint, StepData } from '@/types';
+import { runTransaction, writeBatch } from 'firebase/firestore';
+
+export async function saveRun(userId: string, run: Run, routePoints: RoutePoint[]): Promise<void> {
+  const batch = writeBatch(db());
+  const runRef = doc(db(), 'users', userId, 'runs', run.id);
+  batch.set(runRef, run);
+
+  routePoints.forEach((point) => {
+    const pointRef = doc(db(), 'users', userId, 'runs', run.id, 'routePoints', point.id);
+    batch.set(pointRef, point);
+  });
+
+  await batch.commit();
+}
+
+export async function getRuns(userId: string): Promise<Run[]> {
+  const snap = await getDocs(
+    query(collection(db(), 'users', userId, 'runs'), orderBy('createdAt', 'desc'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Run));
+}
+
+export async function getRoutePoints(userId: string, runId: string): Promise<RoutePoint[]> {
+  const snap = await getDocs(
+    query(collection(db(), 'users', userId, 'runs', runId, 'routePoints'), orderBy('timestamp', 'asc'))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as RoutePoint));
+}
+
+export async function getRunById(userId: string, runId: string): Promise<Run | null> {
+  const snap = await getDoc(doc(db(), 'users', userId, 'runs', runId));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as Run;
+}
+
+// ─── Health / Steps ──────────────────────────────────────────
+
+export async function saveStepData(userId: string, stepData: StepData): Promise<void> {
+  const ref = doc(db(), 'users', userId, 'health', stepData.date); // using date as ID for easy fetching
+  await setDoc(ref, stepData, { merge: true });
+}
+
+export async function getStepDataForDate(userId: string, date: string): Promise<StepData | null> {
+  const snap = await getDoc(doc(db(), 'users', userId, 'health', date));
+  if (!snap.exists()) return null;
+  return snap.data() as StepData;
+}
+
+export async function getWeeklyStepData(userId: string, startDate: string, endDate: string): Promise<StepData[]> {
+  // Simple fetch all and filter since we don't have thousands or complex querying immediately
+  // Or we can query by document IDs if we pad them nicely, but let's just get the health collection
+  const snap = await getDocs(collection(db(), 'users', userId, 'health'));
+  return snap.docs
+    .map((d) => d.data() as StepData)
+    .filter((s) => s.date >= startDate && s.date <= endDate)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}

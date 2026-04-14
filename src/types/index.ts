@@ -46,3 +46,28 @@ export interface UserSettings {
   unit: WeightUnit;
   theme: ThemeMode;
 }
+
+export interface Run {
+  id: string;
+  date: string; // YYYY-MM-DD
+  duration: number; // in seconds
+  distance: number; // in meters
+  averagePace: number; // seconds per meter/km depending on calculation
+  createdAt: number;
+}
+
+export interface RoutePoint {
+  id: string;
+  latitude: number;
+  longitude: number;
+  timestamp: number;
+  speed: number | null;
+}
+
+export interface StepData {
+  date: string; // YYYY-MM-DD
+  steps: number;
+  distance: number; // in meters
+  calories: number;
+  updatedAt: number;
+}

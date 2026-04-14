@@ -151,11 +151,10 @@ export default function TemplatesPage() {
                     <button
                       onClick={() => handleLoad(t)}
                       disabled={isLoading || isLoaded}
-                      className={`flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${
-                        isLoaded
-                          ? 'bg-success text-white'
-                          : 'bg-accent text-text-on-accent shadow-btn-shadow hover:shadow-btn-shadow-hover'
-                      }`}
+                      className={`flex-1 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${isLoaded
+                        ? 'bg-success text-white'
+                        : 'bg-accent text-text-on-accent shadow-btn-shadow hover:shadow-btn-shadow-hover'
+                        }`}
                     >
                       {isLoading ? <Loader2 size={16} className="animate-spin" /> : isLoaded ? <><Check size={16} /> Loaded!</> : <><Play size={16} /> Load</>}
                     </button>
