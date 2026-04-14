@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getMovements, addMovement, updateMovement, deleteMovement } from '@/lib/firestore';
 import { StaggeredList, SkeletonList } from '@/components/Skeleton';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { Trash2, Pencil, Plus, Check, X, Search } from 'lucide-react';
 import type { Movement, Category } from '@/types';
 
@@ -20,6 +21,7 @@ export default function MovementsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editCategory, setEditCategory] = useState<Category>('Legs');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -52,11 +54,12 @@ export default function MovementsPage() {
     setNewName('');
   }, [user, newName, newCategory]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!user) return;
-    setMovements((prev) => prev.filter((m) => m.id !== id));
-    await deleteMovement(user.uid, id);
-  }, [user]);
+  const confirmDeleteMovement = useCallback(async () => {
+    if (!user || !deleteTarget) return;
+    setMovements((prev) => prev.filter((m) => m.id !== deleteTarget.id));
+    await deleteMovement(user.uid, deleteTarget.id);
+    setDeleteTarget(null);
+  }, [user, deleteTarget]);
 
   const startEdit = useCallback((m: Movement) => {
     setEditingId(m.id);
@@ -185,7 +188,7 @@ export default function MovementsPage() {
                       <span className="text-text-primary text-sm">{m.name}</span>
                       <div className="flex gap-1">
                         <button onClick={() => startEdit(m)} className="p-1.5 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent/10 active:scale-90 transition-all"><Pencil size={14} /></button>
-                        <button onClick={() => handleDelete(m.id)} className="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 active:scale-90 transition-all"><Trash2 size={14} /></button>
+                        <button onClick={() => setDeleteTarget({ id: m.id, name: m.name })} className="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 active:scale-90 transition-all"><Trash2 size={14} /></button>
                       </div>
                     </>
                   )}
@@ -195,6 +198,16 @@ export default function MovementsPage() {
           </div>
         </div>
       ))}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Are you sure?"
+        message={deleteTarget ? `Do you really want to delete "${deleteTarget.name}"?` : ''}
+        confirmLabel="Delete"
+        onConfirm={confirmDeleteMovement}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

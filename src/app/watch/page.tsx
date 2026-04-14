@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocationTracking } from '@/lib/hooks/useLocationTracking';
 import { usePedometer } from '@/lib/hooks/usePedometer';
 import { useAuth } from '@/context/AuthContext';
@@ -19,17 +20,16 @@ function fmtTime(ms: number): string {
 
 export default function WatchPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const tracker = useLocationTracking();
   const pedometer = usePedometer();
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const handleStart = async () => {
     if (pedometer.isAvailable === false) {
       await pedometer.requestPermission();
     }
     pedometer.setSteps(0);
-    setSaved(false);
     tracker.startTracking();
   };
 
@@ -56,7 +56,8 @@ export default function WatchPage() {
       };
       await saveRun(user.uid, run, tracker.route);
       setSaving(false);
-      setSaved(true);
+      // Redirect to history page after saving
+      router.push('/history');
     }
   };
 
@@ -129,7 +130,6 @@ export default function WatchPage() {
 
       {/* Status messages */}
       {saving && <p className="text-text-tertiary text-xs animate-pulse">Saving workout…</p>}
-      {saved && <p className="text-success text-xs font-semibold">✓ Workout saved!</p>}
       {tracker.error && <p className="text-danger text-xs text-center">{tracker.error}</p>}
     </div>
   );

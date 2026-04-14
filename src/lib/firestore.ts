@@ -181,6 +181,15 @@ export async function getRunById(userId: string, runId: string): Promise<Run | n
   return { id: snap.id, ...snap.data() } as Run;
 }
 
+export async function deleteRun(userId: string, runId: string): Promise<void> {
+  // Delete all routePoints first
+  const rpSnap = await getDocs(collection(db(), 'users', userId, 'runs', runId, 'routePoints'));
+  const batch = writeBatch(db());
+  rpSnap.docs.forEach((d) => batch.delete(d.ref));
+  batch.delete(doc(db(), 'users', userId, 'runs', runId));
+  await batch.commit();
+}
+
 // ─── Health / Steps ──────────────────────────────────────────
 
 export async function saveStepData(userId: string, stepData: StepData): Promise<void> {

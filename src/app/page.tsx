@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import {
@@ -15,18 +16,24 @@ import {
   getRuns,
   getWeeklyStepData,
   getRoutePoints,
+  deleteRun,
 } from '@/lib/firestore';
 import WorkoutForm from '@/components/WorkoutForm';
 import WorkoutList from '@/components/WorkoutList';
 import MapView from '@/components/MapView';
 import OutdoorTracker from '@/components/OutdoorTracker';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { SkeletonList } from '@/components/Skeleton';
-import { CheckCircle, Trophy, Activity, Footprints, Flame } from 'lucide-react';
+import {
+  CheckCircle, Trophy, Activity, Footprints, Flame,
+  Maximize2, Trash2, ExternalLink,
+} from 'lucide-react';
 import type { Workout, WorkoutEntry, Movement, Run, StepData, RoutePoint } from '@/types';
 
 export default function HomePage() {
   const { user } = useAuth();
   const { unit } = useSettings();
+  const router = useRouter();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
@@ -35,6 +42,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [finishState, setFinishState] = useState<'idle' | 'confirm' | 'done'>('idle');
   const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
+
+  // Latest run expanded map & delete confirm
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const [confirmDeleteRun, setConfirmDeleteRun] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -151,6 +162,17 @@ export default function HomePage() {
     }
   }, [finishState, user, workout, unit, showToast]);
 
+  const handleDeleteLatestRun = useCallback(async () => {
+    if (!user || runs.length === 0) return;
+    const runId = runs[0].id;
+    setRuns((prev) => prev.filter((r) => r.id !== runId));
+    setLatestRoute([]);
+    setConfirmDeleteRun(false);
+    setMapExpanded(false);
+    await deleteRun(user.uid, runId);
+    showToast('Run deleted');
+  }, [user, runs, showToast]);
+
   const lastEntry = workout?.entries?.length ? workout.entries[workout.entries.length - 1] : null;
 
   /* ── Loading skeleton ─────────────────────────────────── */
@@ -167,6 +189,7 @@ export default function HomePage() {
   const weeklySteps = steps.reduce((sum, s) => sum + s.steps, 0);
   const weeklyDistance = runs.reduce((sum, r) => sum + r.distance, 0) / 1000;
   const weeklyCalories = steps.reduce((sum, s) => sum + (s.calories || 0), 0);
+  const latestRun = runs.length > 0 ? runs[0] : null;
 
   return (
     <div className="pt-6 pb-20 animate-fade-in flex flex-col gap-6">
@@ -180,21 +203,59 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── Latest Run Map Preview ───────────────────────── */}
-      {runs.length > 0 && (
+      {/* ─── Latest Run Map Preview (improved) ────────────── */}
+      {latestRun && (
         <section>
           <div className="flex justify-between items-end mb-3">
             <h2 className="text-xl font-bold text-text-primary">Latest Run</h2>
             <span className="text-sm text-text-tertiary">
-              {new Date(runs[0].createdAt).toLocaleDateString()}
+              {new Date(latestRun.createdAt).toLocaleDateString()}
             </span>
           </div>
-          <MapView route={latestRoute} height="160px" />
-          <div className="flex justify-between px-1 mt-2 text-sm text-text-secondary">
-            <span>{(runs[0].distance / 1000).toFixed(2)} km</span>
-            <span>
-              {Math.floor(runs[0].duration / 60)}:{(runs[0].duration % 60).toString().padStart(2, '0')}
-            </span>
+
+          <div className="bg-bg-secondary rounded-2xl border border-border-color shadow-card-shadow overflow-hidden">
+            {/* Map — toggle between compact and expanded */}
+            <MapView route={latestRoute} height={mapExpanded ? '350px' : '160px'} />
+
+            {/* Stats bar */}
+            <div className="flex items-center justify-between px-4 py-3 text-sm">
+              <div className="flex gap-4 text-text-secondary">
+                <span className="font-semibold">{(latestRun.distance / 1000).toFixed(2)} km</span>
+                <span>
+                  {Math.floor(latestRun.duration / 60)}:{(latestRun.duration % 60).toString().padStart(2, '0')}
+                </span>
+                {latestRun.duration > 0 && (
+                  <span className="text-text-tertiary">
+                    {((latestRun.distance / 1000) / (latestRun.duration / 3600)).toFixed(1)} km/h
+                  </span>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setMapExpanded((e) => !e)}
+                  className="p-1.5 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent/10 active:scale-90 transition-all"
+                  title={mapExpanded ? 'Collapse map' : 'Expand map'}
+                >
+                  <Maximize2 size={16} />
+                </button>
+                <button
+                  onClick={() => router.push('/history')}
+                  className="p-1.5 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent/10 active:scale-90 transition-all"
+                  title="View in History"
+                >
+                  <ExternalLink size={16} />
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteRun(true)}
+                  className="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 active:scale-90 transition-all"
+                  title="Delete run"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       )}
@@ -249,6 +310,16 @@ export default function HomePage() {
           </>
         )}
       </section>
+
+      {/* ─── Delete Run Confirmation ──────────────────────── */}
+      <ConfirmDialog
+        open={confirmDeleteRun}
+        title="Are you sure?"
+        message="Do you really want to delete this run? The route data will be permanently removed."
+        confirmLabel="Delete"
+        onConfirm={handleDeleteLatestRun}
+        onCancel={() => setConfirmDeleteRun(false)}
+      />
 
       {/* ─── Toast ────────────────────────────────────────── */}
       {toast && (

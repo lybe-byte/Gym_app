@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocationTracking } from '@/lib/hooks/useLocationTracking';
 import { usePedometer } from '@/lib/hooks/usePedometer';
 import { useAuth } from '@/context/AuthContext';
@@ -33,18 +34,17 @@ function fmtTime(ms: number): string {
 
 export default function OutdoorTracker() {
   const { user } = useAuth();
+  const router = useRouter();
   const tracker = useLocationTracking();
   const pedometer = usePedometer();
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const handleStart = async () => {
     if (pedometer.isAvailable === false) {
       await pedometer.requestPermission();
     }
     pedometer.setSteps(0);
-    setSaved(false);
     tracker.startTracking();
     setExpanded(true);
   };
@@ -67,18 +67,19 @@ export default function OutdoorTracker() {
       date: todayDateString(),
       duration: durationSecs,
       distance: tracker.distance,
-      averagePace: tracker.distance > 0 ? durationSecs / (tracker.distance / 1000) : 0, // sec/km
+      averagePace: tracker.distance > 0 ? durationSecs / (tracker.distance / 1000) : 0,
       createdAt: Date.now(),
     };
     await saveRun(user.uid, run, tracker.route);
     setSaving(false);
-    setSaved(true);
+    // Redirect to history so the user sees their saved run immediately
+    router.push('/history');
   };
 
   const distKm = (tracker.distance / 1000).toFixed(2);
 
   // ── Idle state — show the start button ─────────────────
-  if (!tracker.isTracking && !saved) {
+  if (!tracker.isTracking) {
     return (
       <button
         onClick={handleStart}
@@ -91,39 +92,6 @@ export default function OutdoorTracker() {
         <MapPin size={22} />
         Start Outdoor Workout
       </button>
-    );
-  }
-
-  // ── Just-saved summary ─────────────────────────────────
-  if (!tracker.isTracking && saved) {
-    return (
-      <div className="bg-bg-secondary border border-border-color rounded-2xl p-4 shadow-card-shadow animate-fade-in">
-        <div className="flex items-center gap-2 text-success font-bold mb-2">
-          <Route size={18} /> Activity Saved!
-        </div>
-        <div className="grid grid-cols-3 gap-3 text-center text-sm">
-          <div>
-            <span className="block text-text-tertiary text-xs">Distance</span>
-            <span className="font-bold">{distKm} km</span>
-          </div>
-          <div>
-            <span className="block text-text-tertiary text-xs">Time</span>
-            <span className="font-bold">{fmtTime(tracker.elapsedMs)}</span>
-          </div>
-          <div>
-            <span className="block text-text-tertiary text-xs">Steps</span>
-            <span className="font-bold">{pedometer.steps.toLocaleString()}</span>
-          </div>
-        </div>
-        <button
-          onClick={handleStart}
-          className="w-full mt-3 py-2.5 rounded-xl text-sm font-semibold
-                     bg-bg-tertiary text-text-primary hover:bg-accent hover:text-text-on-accent
-                     active:scale-[0.97] transition-all"
-        >
-          Start Another
-        </button>
-      </div>
     );
   }
 

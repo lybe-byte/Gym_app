@@ -15,6 +15,7 @@ import {
   generateId,
 } from '@/lib/firestore';
 import { StaggeredList, SkeletonList } from '@/components/Skeleton';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { useRouter } from 'next/navigation';
 import { Trash2, Pencil, Play, ChevronUp, ChevronDown, Check, Loader2 } from 'lucide-react';
 import type { Template, WorkoutEntry } from '@/types';
@@ -27,6 +28,7 @@ export default function TemplatesPage() {
   const [loading, setLoading] = useState(true);
   const [loadingTemplate, setLoadingTemplate] = useState<string | null>(null);
   const [loadedTemplate, setLoadedTemplate] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -73,14 +75,12 @@ export default function TemplatesPage() {
     [user, router]
   );
 
-  const handleDelete = useCallback(
-    async (id: string) => {
-      if (!user) return;
-      setTemplates((prev) => prev.filter((t) => t.id !== id));
-      await deleteTemplate(user.uid, id);
-    },
-    [user]
-  );
+  const confirmDeleteTemplate = useCallback(async () => {
+    if (!user || !deleteTarget) return;
+    setTemplates((prev) => prev.filter((t) => t.id !== deleteTarget.id));
+    await deleteTemplate(user.uid, deleteTarget.id);
+    setDeleteTarget(null);
+  }, [user, deleteTarget]);
 
   const handleReorder = useCallback(
     async (id: string, dir: -1 | 1) => {
@@ -159,7 +159,7 @@ export default function TemplatesPage() {
                       {isLoading ? <Loader2 size={16} className="animate-spin" /> : isLoaded ? <><Check size={16} /> Loaded!</> : <><Play size={16} /> Load</>}
                     </button>
                     <button
-                      onClick={() => handleDelete(t.id)}
+                      onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
                       className="p-2.5 rounded-xl text-text-tertiary hover:text-danger hover:bg-danger/10 active:scale-90 transition-all"
                     >
                       <Trash2 size={16} />
@@ -182,6 +182,16 @@ export default function TemplatesPage() {
           </StaggeredList>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Are you sure?"
+        message={deleteTarget ? `Do you really want to delete the template "${deleteTarget.name}"?` : ''}
+        confirmLabel="Delete"
+        onConfirm={confirmDeleteTemplate}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

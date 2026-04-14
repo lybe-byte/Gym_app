@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Trash2, Copy, Pencil, Check, X } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import type { WorkoutEntry } from '@/types';
 
 interface WorkoutListProps {
@@ -20,6 +21,9 @@ export default function WorkoutList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editReps, setEditReps] = useState('');
   const [editWeight, setEditWeight] = useState('');
+  const [confirmTarget, setConfirmTarget] = useState<
+    { type: 'entry'; id: string } | { type: 'movement'; name: string } | null
+  >(null);
 
   // Group entries by movement
   const grouped = entries.reduce<Record<string, WorkoutEntry[]>>((acc, e) => {
@@ -45,12 +49,15 @@ export default function WorkoutList({
     [entries, editReps, editWeight, onUpdate]
   );
 
-  const deleteEntry = useCallback(
-    (entryId: string) => {
-      onUpdate(entries.filter((e) => e.id !== entryId));
-    },
-    [entries, onUpdate]
-  );
+  const handleConfirmDelete = useCallback(() => {
+    if (!confirmTarget) return;
+    if (confirmTarget.type === 'entry') {
+      onUpdate(entries.filter((e) => e.id !== confirmTarget.id));
+    } else if (confirmTarget.type === 'movement' && onDeleteMovement) {
+      onDeleteMovement(confirmTarget.name);
+    }
+    setConfirmTarget(null);
+  }, [confirmTarget, entries, onUpdate, onDeleteMovement]);
 
   const duplicateEntry = useCallback(
     (entry: WorkoutEntry) => {
@@ -99,7 +106,7 @@ export default function WorkoutList({
               </div>
               {onDeleteMovement && (
                 <button
-                  onClick={() => onDeleteMovement(moveName)}
+                  onClick={() => setConfirmTarget({ type: 'movement', name: moveName })}
                   className="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 active:scale-90 transition-all"
                 >
                   <Trash2 size={16} />
@@ -174,7 +181,7 @@ export default function WorkoutList({
                           <Pencil size={14} />
                         </button>
                         <button
-                          onClick={() => deleteEntry(entry.id)}
+                          onClick={() => setConfirmTarget({ type: 'entry', id: entry.id })}
                           className="p-1.5 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger/10 active:scale-90 transition-all"
                           title="Delete set"
                         >
@@ -189,6 +196,20 @@ export default function WorkoutList({
           </div>
         ))}
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmTarget !== null}
+        title="Are you sure?"
+        message={
+          confirmTarget?.type === 'movement'
+            ? `Do you really want to delete all sets for "${confirmTarget.name}"?`
+            : 'Do you really want to delete this set?'
+        }
+        confirmLabel="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 }
