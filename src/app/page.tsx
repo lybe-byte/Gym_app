@@ -16,7 +16,6 @@ import {
   getRuns,
   getWeeklyStepData,
   getRoutePoints,
-  getAllRoutePoints,
   deleteRun,
   getWorkouts,
 } from '@/lib/firestore';
@@ -61,19 +60,17 @@ export default function HomePage() {
       weekStart.setDate(weekStart.getDate() - 7);
       const weekStartStr = weekStart.toISOString().slice(0, 10);
 
-      const [w, m, r, s, hP, allW] = await Promise.all([
+      const [w, m, r, s, allW] = await Promise.all([
         getWorkoutByDate(user.uid, todayDateString()),
         getMovements(user.uid),
         getRuns(user.uid),
         getWeeklyStepData(user.uid, weekStartStr, todayDateString()),
-        getAllRoutePoints(user.uid, 30),
         getWorkouts(user.uid),
       ]);
       setWorkout(w);
       setMovements(m);
       setRuns(r);
       setSteps(s);
-      setHeatmapRoute(hP);
 
       // Filter workouts within the last 7 days for the goals counter
       const recentW = allW.filter((workout) => workout.date >= weekStartStr);
@@ -225,7 +222,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Activity Map Preview ─────────────────────────── */}
-      {(latestRun || heatmapRoute.length > 0) && (
+      {(latestRun || showHeatmap) && (
         <section>
           <div className="flex justify-between items-end mb-3">
             <h2 className="text-xl font-bold text-text-primary">
@@ -252,7 +249,7 @@ export default function HomePage() {
             {!showHeatmap && latestRun ? (
               <MapView route={latestRoute} height={mapExpanded ? '350px' : '160px'} />
             ) : showHeatmap ? (
-              <HeatmapView routePoints={heatmapRoute} height={mapExpanded ? '350px' : '160px'} />
+              <HeatmapView height={mapExpanded ? '350px' : '160px'} />
             ) : null}
 
             {/* Stats bar */}
