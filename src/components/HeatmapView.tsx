@@ -24,6 +24,8 @@ export default function HeatmapView({ height = '300px' }: HeatmapViewProps) {
 
   useEffect(() => {
     setIsMounted(true);
+    // Import leaflet CSS side-effect
+    import('leaflet/dist/leaflet.css');
   }, []);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function HeatmapView({ height = '300px' }: HeatmapViewProps) {
         results.forEach(pts => allPts.push(...pts));
         setHeatmapData(allPts);
       } catch (error) {
-        console.error("Heatmap 401/fetch error:", error);
+        console.error("Heatmap fetch error:", error);
       }
     });
 
@@ -84,8 +86,8 @@ export default function HeatmapView({ height = '300px' }: HeatmapViewProps) {
         zoomControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>'
-          url="https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         />
         {heatmapData.length > 0 && <HeatmapLayer points={heatmapData} />}
       </MapContainer>

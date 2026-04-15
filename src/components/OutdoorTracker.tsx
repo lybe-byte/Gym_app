@@ -68,7 +68,8 @@ export default function OutdoorTracker() {
   }, []);
 
   const handleStart = async () => {
-    if (pedometer.isAvailable === false) {
+    // On iOS, we must request permission from a user gesture if it's not already granted (null or false)
+    if (pedometer.isAvailable !== true) {
       await pedometer.requestPermission();
     }
     pedometer.setSteps(0);
@@ -86,19 +87,50 @@ export default function OutdoorTracker() {
 
   const handleStop = async () => {
     tracker.stopTracking();
-    if (!user || tracker.distance < 1) return;
+    if (!user) return;
+    
     setSaving(true);
     const durationSecs = Math.ceil(tracker.elapsedMs / 1000);
-    const run: Run = {
-      id: generateId(),
-      date: todayDateString(),
-      duration: durationSecs,
-      distance: tracker.distance,
-      averagePace: tracker.distance > 0 ? durationSecs / (tracker.distance / 1000) : 0,
-      createdAt: Date.now(),
-    };
-    await saveRun(user.uid, run, tracker.route);
+    
+    // 1. Save Run Data
+    if (tracker.distance >= 1) {
+      const run: Run = {
+        id: generateId(),
+        date: todayDateString(),
+        duration: durationSecs,
+        distance: tracker.distance,
+        averagePace: tracker.distance > 0 ? durationSecs / (tracker.distance / 1000) : 0,
+        createdAt: Date.now(),
+      };
+      await saveRun(user.uid, run, tracker.route);
+    }
+
+    // 2. Save/Update Step & Calorie Data for Today
+    // Formula: ~0.75 calories per kg per km. Using 75kg default weight -> 56 cal/km
+    const sessionDistance = tracker.distance;
+    const sessionSteps = pedometer.steps;
+    const sessionCalories = Math.round((sessionDistance / 1000) * 75 * 0.85);
+
+    try {
+      const { getStepDataForDate, saveStepData } = await import('@/lib/firestore');
+      const existing = await getStepDataForDate(user.uid, todayDateString());
+      
+      const newStepData = {
+        date: todayDateString(),
+        steps: (existing?.steps || 0) + sessionSteps,
+        distance: (existing?.distance || 0) + sessionDistance,
+        calories: (existing?.calories || 0) + sessionCalories,
+        updatedAt: Date.now(),
+      };
+      
+      await saveStepData(user.uid, newStepData);
+    } catch (err) {
+      console.error("Failed to save step data:", err);
+    }
+
     setSaving(false);
+    pedometer.setSteps(0);
+    
     // Redirect to history so the user sees their saved run immediately
     router.push('/history');
   };

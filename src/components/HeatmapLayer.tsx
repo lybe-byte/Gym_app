@@ -1,8 +1,13 @@
 import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet.heat'; // Modifies L globally to add L.heatLayer
 import type { RoutePoint } from '@/types';
+
+// Client-side only import for leaflet.heat
+if (typeof window !== 'undefined') {
+  require('leaflet.heat');
+}
+
 
 export default function HeatmapLayer({ points }: { points: RoutePoint[] }) {
   const map = useMap();
