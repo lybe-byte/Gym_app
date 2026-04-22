@@ -81,3 +81,11 @@ export interface WeeklyGoals {
   calories: number;
   workouts: number;
 }
+
+export interface WeightLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  weight: number;
+  unit: WeightUnit;
+  createdAt: number;
+}

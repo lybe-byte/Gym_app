@@ -2,13 +2,14 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Activity, ClipboardList, Dumbbell, BarChart2, Settings } from 'lucide-react';
+import { Activity, ClipboardList, Dumbbell, BarChart2, TrendingUp, Settings } from 'lucide-react';
 
 const tabs = [
   { href: '/', label: 'Workout', icon: Activity },
   { href: '/templates', label: 'Templates', icon: ClipboardList },
   { href: '/movements', label: 'Moves', icon: Dumbbell },
   { href: '/history', label: 'History', icon: BarChart2 },
+  { href: '/weight', label: 'Weight', icon: TrendingUp },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -19,7 +19,7 @@ const unitOptions: WeightUnit[] = ['kg', 'lbs'];
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { unit, setUnit, weight, setWeight } = useSettings();
+  const { unit, setUnit } = useSettings();
   const [exporting, setExporting] = useState(false);
 
   const handleExport = useCallback(async () => {
@@ -120,23 +120,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Body Weight */}
-      <div className="bg-bg-secondary rounded-xl border border-border-color shadow-card-shadow card-depth p-4 mb-4">
-        <h2 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Body Weight</h2>
-        <div className="flex items-center gap-3">
-          <input
-            type="number"
-            value={weight || ''}
-            onChange={(e) => setWeight(Number(e.target.value))}
-            className="flex-1 bg-bg-tertiary border border-border-color rounded-xl px-4 py-3 text-text-primary font-medium focus:outline-none focus:border-accent transition-all"
-            placeholder="Enter weight..."
-          />
-          <span className="text-text-secondary font-bold px-2">{unit}</span>
-        </div>
-        <p className="text-[10px] text-text-tertiary mt-2">
-          Used for more accurate calorie calculation during outdoor activities.
-        </p>
-      </div>
 
       {/* Data */}
       <div className="bg-bg-secondary rounded-xl border border-border-color shadow-card-shadow card-depth p-4 mb-4">

@@ -11,7 +11,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Movement, Workout, WorkoutEntry, Template, UserSettings, WeightUnit } from '@/types';
+import type { Movement, Workout, WorkoutEntry, Template, UserSettings, WeightUnit, WeightLog } from '@/types';
 
 // ─── Movements ───────────────────────────────────────────────
 
@@ -250,4 +250,29 @@ export async function getAllRoutePoints(userId: string, limitRuns: number = 30):
   results.forEach(pts => allPts.push(...pts));
   
   return allPts;
+}
+
+// ─── Weight Logging ──────────────────────────────────────────
+
+export async function saveWeightLog(userId: string, log: WeightLog): Promise<void> {
+  // We use the date as the document ID so there's only one log per day (updates existing if same day)
+  const ref = doc(db(), 'users', userId, 'weightLogs', log.date);
+  await setDoc(ref, log, { merge: true });
+  
+  // Also sync with current user settings so calorie calculations stay updated
+  const settings = await getUserSettings(userId);
+  if (settings) {
+    await saveUserSettings(userId, {
+      ...settings,
+      weight: log.weight,
+      weightUnit: log.unit
+    });
+  }
+}
+
+export async function getWeightLogs(userId: string): Promise<WeightLog[]> {
+  const snap = await getDocs(
+    query(collection(db(), 'users', userId, 'weightLogs'), orderBy('date', 'desc'))
+  );
+  return snap.docs.map((d) => d.data() as WeightLog);
 }
