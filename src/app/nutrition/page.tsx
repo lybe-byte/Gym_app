@@ -79,8 +79,9 @@ export default function NutritionPage() {
       await saveNutritionLog(user.uid, updatedLog);
       setLog(updatedLog);
       setUserInput('');
-    } catch (e) {
+    } catch (e: any) {
       console.error("Nutrition analysis error:", e);
+      alert(`Nutrition Error: ${e.message || "Unknown error"}. Please check if NEXT_PUBLIC_GEMINI_API_KEY is correctly set in Vercel settings.`);
     } finally {
       setAnalyzing(false);
     }
