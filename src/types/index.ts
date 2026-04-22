@@ -89,3 +89,24 @@ export interface WeightLog {
   unit: WeightUnit;
   createdAt: number;
 }
+
+export interface FoodItem {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  servingSize?: string;
+}
+
+export interface NutritionLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
+  items: FoodItem[];
+  updatedAt: number;
+}

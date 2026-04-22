@@ -5,6 +5,7 @@ import { AuthContextProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import AuthGuard from "@/components/AuthGuard";
+import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 
 const geistSans = Geist({
@@ -46,7 +47,8 @@ export default function RootLayout({
           <ThemeProvider>
             <SettingsProvider>
               <AuthGuard>
-                <main className="mx-auto max-w-lg px-4 pb-24" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
+                <Header />
+                <main className="mx-auto max-w-lg px-4 pb-24" style={{ paddingTop: 'max(4.5rem, calc(env(safe-area-inset-top) + 3.5rem))' }}>
                   {children}
                 </main>
                 <BottomNav />

@@ -2,17 +2,18 @@
 
 import { useMemo } from 'react';
 import type { StepData, Run } from '@/types';
-import { X, Footprints, Flame, Route } from 'lucide-react';
+import { X, Footprints, Flame, Route, Scale } from 'lucide-react';
 
 interface DailyStatsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  metric: 'steps' | 'distance' | 'calories' | null;
+  metric: 'steps' | 'distance' | 'calories' | 'weight' | null;
   stepsData: StepData[];
   runsData: Run[];
+  weightLogs?: WeightLog[];
 }
 
-export default function DailyStatsDialog({ isOpen, onClose, metric, stepsData, runsData }: DailyStatsDialogProps) {
+export default function DailyStatsDialog({ isOpen, onClose, metric, stepsData, runsData, weightLogs = [] }: DailyStatsDialogProps) {
   const chartData = useMemo(() => {
     if (!metric) return [];
 
@@ -37,11 +38,13 @@ export default function DailyStatsDialog({ isOpen, onClose, metric, stepsData, r
         value = runsData
           .filter((r) => new Date(r.createdAt).toISOString().slice(0, 10) === dateStr)
           .reduce((sum, r) => sum + r.distance, 0) / 1000; // in km
+      } else if (metric === 'weight') {
+        value = weightLogs.find((l) => l.date === dateStr)?.weight || 0;
       }
 
       return { dateStr, weekday, value };
     });
-  }, [metric, stepsData, runsData]);
+  }, [metric, stepsData, runsData, weightLogs]);
 
   if (!isOpen || !metric) return null;
 
@@ -53,9 +56,10 @@ export default function DailyStatsDialog({ isOpen, onClose, metric, stepsData, r
     steps: { label: 'Steps', icon: <Footprints size={20} className="text-accent" />, color: 'bg-accent' },
     distance: { label: 'Distance', icon: <Route size={20} className="text-success" />, color: 'bg-success' },
     calories: { label: 'Calories', icon: <Flame size={20} className="text-warning" />, color: 'bg-warning' },
+    weight: { label: 'Weight', icon: <Scale size={20} className="text-accent" />, color: 'bg-accent' },
   };
 
-  const config = metricConfig[metric];
+  const config = metricConfig[metric as keyof typeof metricConfig];
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-bg-primary/80 backdrop-blur-sm animate-fade-in print:hidden p-4 pt-[12dvh]">
@@ -103,6 +107,11 @@ export default function DailyStatsDialog({ isOpen, onClose, metric, stepsData, r
                 <span className={`text-[10px] font-semibold w-full text-center ${idx === 6 ? 'text-text-primary' : 'text-text-tertiary'}`}>
                   {day.weekday}
                 </span>
+                {metric === 'weight' && day.value > 0 && idx === 6 && (
+                  <span className="absolute -bottom-4 text-[8px] font-bold text-accent whitespace-nowrap uppercase">
+                    Current
+                  </span>
+                )}
               </div>
             );
           })}
@@ -115,15 +124,28 @@ export default function DailyStatsDialog({ isOpen, onClose, metric, stepsData, r
             <p className="font-bold text-lg text-text-primary">
               {isDistance 
                 ? chartData.reduce((s, d) => s + d.value, 0).toFixed(1) + ' km'
-                : chartData.reduce((s, d) => s + d.value, 0).toLocaleString()}
+                : metric === 'weight'
+                  ? (chartData.filter(d => d.value > 0).length > 0 
+                      ? chartData.filter(d => d.value > 0).slice(-1)[0].value.toFixed(1) + ' kg'
+                      : '0.0 kg')
+                  : chartData.reduce((s, d) => s + d.value, 0).toLocaleString()}
             </p>
           </div>
           <div>
-            <p className="text-xs text-text-tertiary mb-1">Daily Average</p>
+            <p className="text-xs text-text-tertiary mb-1">
+              {metric === 'weight' ? '7-Day Change' : 'Daily Average'}
+            </p>
             <p className="font-bold text-lg text-text-primary">
               {isDistance 
                 ? (chartData.reduce((s, d) => s + d.value, 0) / 7).toFixed(1) + ' km'
-                : Math.round(chartData.reduce((s, d) => s + d.value, 0) / 7).toLocaleString()}
+                : metric === 'weight'
+                  ? (() => {
+                      const weights = chartData.filter(d => d.value > 0);
+                      if (weights.length < 2) return '0.0 kg';
+                      const diff = weights[weights.length - 1].value - weights[0].value;
+                      return (diff >= 0 ? '+' : '') + diff.toFixed(1) + ' kg';
+                    })()
+                  : Math.round(chartData.reduce((s, d) => s + d.value, 0) / 7).toLocaleString()}
             </p>
           </div>
         </div>

@@ -8,6 +8,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  limit,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -270,9 +271,29 @@ export async function saveWeightLog(userId: string, log: WeightLog): Promise<voi
   }
 }
 
-export async function getWeightLogs(userId: string): Promise<WeightLog[]> {
-  const snap = await getDocs(
-    query(collection(db(), 'users', userId, 'weightLogs'), orderBy('date', 'desc'))
+export const getWeightLogs = async (userId: string): Promise<WeightLog[]> => {
+  const q = query(
+    collection(db(), 'users', userId, 'weightLogs'),
+    orderBy('date', 'desc'),
+    limit(30)
   );
-  return snap.docs.map((d) => d.data() as WeightLog);
-}
+  
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => doc.data() as WeightLog);
+};
+
+// Nutrition
+export const getNutritionLog = async (userId: string, date: string): Promise<NutritionLog | null> => {
+  const docRef = doc(db(), 'users', userId, 'nutritionLogs', date);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    return docSnap.data() as NutritionLog;
+  }
+  return null;
+};
+
+export const saveNutritionLog = async (userId: string, log: NutritionLog) => {
+  const docRef = doc(db(), 'users', userId, 'nutritionLogs', log.date);
+  await setDoc(docRef, log, { merge: true });
+};

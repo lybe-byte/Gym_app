@@ -16,8 +16,8 @@ import {
   getRuns,
   getWeeklyStepData,
   getRoutePoints,
-  deleteRun,
   getWorkouts,
+  getWeightLogs,
 } from '@/lib/firestore';
 import WorkoutForm from '@/components/WorkoutForm';
 import WorkoutList from '@/components/WorkoutList';
@@ -31,8 +31,9 @@ import { SkeletonList } from '@/components/Skeleton';
 import {
   CheckCircle, Trophy, Activity, Footprints, Flame,
   Maximize2, Trash2, ExternalLink, Map as MapIcon,
+  Scale,
 } from 'lucide-react';
-import type { Workout, WorkoutEntry, Movement, Run, StepData, RoutePoint } from '@/types';
+import type { Workout, WorkoutEntry, Movement, Run, StepData, RoutePoint, WeightLog } from '@/types';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -42,6 +43,7 @@ export default function HomePage() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [steps, setSteps] = useState<StepData[]>([]);
+  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
   const [latestRoute, setLatestRoute] = useState<RoutePoint[]>([]);
   const [heatmapRoute, setHeatmapRoute] = useState<RoutePoint[]>([]);
   const [weeklyWorkoutsCount, setWeeklyWorkoutsCount] = useState(0);
@@ -53,7 +55,7 @@ export default function HomePage() {
   const [mapExpanded, setMapExpanded] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [confirmDeleteRun, setConfirmDeleteRun] = useState(false);
-  const [activeMetric, setActiveMetric] = useState<'steps' | 'distance' | 'calories' | null>(null);
+  const [activeMetric, setActiveMetric] = useState<'steps' | 'distance' | 'calories' | 'weight' | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -62,17 +64,19 @@ export default function HomePage() {
       weekStart.setDate(weekStart.getDate() - 7);
       const weekStartStr = weekStart.toISOString().slice(0, 10);
 
-      const [w, m, r, s, allW] = await Promise.all([
+      const [w, m, r, s, allW, weightData] = await Promise.all([
         getWorkoutByDate(user.uid, todayDateString()),
         getMovements(user.uid),
         getRuns(user.uid),
         getWeeklyStepData(user.uid, weekStartStr, todayDateString()),
         getWorkouts(user.uid),
+        getWeightLogs(user.uid),
       ]);
       setWorkout(w);
       setMovements(m);
       setRuns(r);
       setSteps(s);
+      setWeightLogs(weightData);
 
       // Filter workouts within the last 7 days for the goals counter
       const recentW = allW.filter((workout) => workout.date >= weekStartStr);
@@ -203,6 +207,7 @@ export default function HomePage() {
   const weeklyDistance = runs.reduce((sum, r) => sum + r.distance, 0) / 1000;
   const weeklyCalories = steps.reduce((sum, s) => sum + (s.calories || 0), 0);
   const latestRun = runs.length > 0 ? runs[0] : null;
+  const currentWeight = weightLogs.length > 0 ? weightLogs[0].weight : 0;
 
   return (
     <>
@@ -217,7 +222,7 @@ export default function HomePage() {
         />
         
         <h2 className="text-xl font-bold text-text-primary mb-3">Last 7 Days</h2>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <SummaryCard 
             icon={<Footprints size={22} />} 
             label="Steps" 
@@ -238,6 +243,13 @@ export default function HomePage() {
             value={weeklyCalories.toLocaleString()} 
             color="text-warning" 
             onClick={() => setActiveMetric('calories')}
+          />
+          <SummaryCard 
+            icon={<Scale size={22} />} 
+            label="Weight" 
+            value={`${currentWeight.toFixed(1)} ${unit}`} 
+            color="text-accent" 
+            onClick={() => setActiveMetric('weight')}
           />
         </div>
       </section>
@@ -408,6 +420,7 @@ export default function HomePage() {
         metric={activeMetric}
         stepsData={steps}
         runsData={runs}
+        weightLogs={weightLogs}
       />
     </>
   );
