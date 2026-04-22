@@ -194,6 +194,11 @@ export default function NutritionPage() {
                 <span className="text-[10px] text-text-tertiary">
                   {item.calories} kcal · {item.protein}g P · {item.carbs}g C · {item.fat}g F
                 </span>
+                {item.notes && (
+                  <p className="text-[10px] text-text-secondary mt-1 italic">
+                    "{item.notes}"
+                  </p>
+                )}
               </div>
               <button 
                 onClick={() => removeItem(item.id)}

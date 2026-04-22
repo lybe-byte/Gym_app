@@ -98,6 +98,7 @@ export interface FoodItem {
   carbs: number;
   fat: number;
   servingSize?: string;
+  notes?: string;
 }
 
 export interface NutritionLog {

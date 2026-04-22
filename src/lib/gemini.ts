@@ -12,6 +12,7 @@ Each object must have:
 - carbs: number (grams)
 - fat: number (grams)
 - servingSize: string (e.g. "1 medium", "100g")
+- notes: string (any extra context, brand, or preparation details found)
 
 If multiple items are found, return all of them. Use your best scientific estimates for values if not specific.
 Response MUST be a valid JSON array of objects.
