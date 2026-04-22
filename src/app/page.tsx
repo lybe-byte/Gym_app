@@ -18,6 +18,7 @@ import {
   getRoutePoints,
   getWorkouts,
   getWeightLogs,
+  deleteRun,
 } from '@/lib/firestore';
 import WorkoutForm from '@/components/WorkoutForm';
 import WorkoutList from '@/components/WorkoutList';

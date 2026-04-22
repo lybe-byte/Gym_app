@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { StepData, Run } from '@/types';
+import type { StepData, Run, WeightLog } from '@/types';
 import { X, Footprints, Flame, Route, Scale } from 'lucide-react';
 
 interface DailyStatsDialogProps {

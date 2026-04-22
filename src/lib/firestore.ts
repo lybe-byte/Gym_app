@@ -11,8 +11,8 @@ import {
   limit,
   Timestamp,
 } from 'firebase/firestore';
+import type { Movement, Workout, WorkoutEntry, Template, UserSettings, WeightUnit, WeightLog, NutritionLog } from '@/types';
 import { db } from './firebase';
-import type { Movement, Workout, WorkoutEntry, Template, UserSettings, WeightUnit, WeightLog } from '@/types';
 
 // ─── Movements ───────────────────────────────────────────────
 
