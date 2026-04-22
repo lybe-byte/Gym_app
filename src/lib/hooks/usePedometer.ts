@@ -5,27 +5,34 @@ export function usePedometer() {
   const [steps, setSteps] = useState(0);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   
-  const lastZ = useRef(0);
   const lastTime = useRef(0);
-  const threshold = 1.2; // roughly tune for walking
   const debounceTimeMs = 300;
 
   const handleMotion = useCallback((event: DeviceMotionEvent) => {
-    if (!event.accelerationIncludingGravity) return;
-    const { z } = event.accelerationIncludingGravity;
-    if (z === null) return;
+    // 1. Try to use acceleration (without gravity) if available as it's cleaner
+    // 2. Fall back to accelerationIncludingGravity
+    const accel = event.acceleration || event.accelerationIncludingGravity;
+    if (!accel) return;
 
-    if (isAvailable === null) setIsAvailable(true);
+    const { x, y, z } = accel;
+    if (x === null || y === null || z === null) return;
 
-    const currentTime = Date.now();
-    const deltaZ = Math.abs(z - lastZ.current);
+    if (isAvailable !== true) setIsAvailable(true);
+
+    // Calculate magnitude
+    const magnitude = Math.sqrt(x * x + y * y + z * z);
     
-    if (deltaZ > threshold && currentTime - lastTime.current > debounceTimeMs) {
+    const currentTime = Date.now();
+    
+    // threshold logic:
+    // If using 'acceleration', we expect values around 0 when stationary and > 2-5 during a step.
+    // If using 'accelerationIncludingGravity', we expect values around 9.8 when stationary.
+    const stepThreshold = event.acceleration ? 2.5 : 12.5;
+
+    if (magnitude > stepThreshold && currentTime - lastTime.current > debounceTimeMs) {
       setSteps((prev) => prev + 1);
       lastTime.current = currentTime;
     }
-    
-    lastZ.current = z;
   }, [isAvailable]);
 
   useEffect(() => {
