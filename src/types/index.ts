@@ -45,6 +45,8 @@ export interface Template {
 export interface UserSettings {
   unit: WeightUnit;
   theme: ThemeMode;
+  weight?: number;
+  weightUnit?: WeightUnit;
 }
 
 export interface Run {
@@ -62,6 +64,7 @@ export interface RoutePoint {
   longitude: number;
   timestamp: number;
   speed: number | null;
+  accuracy: number | null;
 }
 
 export interface StepData {

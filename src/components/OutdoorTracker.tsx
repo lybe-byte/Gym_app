@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocationTracking } from '@/lib/hooks/useLocationTracking';
 import { usePedometer } from '@/lib/hooks/usePedometer';
+import { useSettings } from '@/context/SettingsContext';
 import { useAuth } from '@/context/AuthContext';
 import { saveRun, todayDateString, generateId } from '@/lib/firestore';
 import MapView from '@/components/MapView';
@@ -38,10 +39,11 @@ function fmtTime(ms: number): string {
 export default function OutdoorTracker() {
   const { user } = useAuth();
   const router = useRouter();
-  const tracker = useLocationTracking();
   const pedometer = usePedometer();
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { weight: userWeight } = useSettings();
+  const tracker = useLocationTracking(userWeight);
   
   // Weather state
   const [weather, setWeather] = useState<{ temp: number; wind: number; rainProb: number } | null>(null);
@@ -105,11 +107,11 @@ export default function OutdoorTracker() {
       await saveRun(user.uid, run, tracker.route);
     }
 
-    // 2. Save/Update Step & Calorie Data for Today
-    // Formula: ~0.75 calories per kg per km. Using 75kg default weight -> 56 cal/km
+    // Formula was: ~0.75 calories per kg per km. 
+    // Now we use the cumulative calories calculated by the tracker hook which is speed/intensity aware.
     const sessionDistance = tracker.distance;
     const sessionSteps = pedometer.steps;
-    const sessionCalories = Math.round((sessionDistance / 1000) * 75 * 0.85);
+    const sessionCalories = Math.round(tracker.calories);
 
     try {
       const { getStepDataForDate, saveStepData } = await import('@/lib/firestore');
@@ -186,16 +188,20 @@ export default function OutdoorTracker() {
       >
         <div className="flex items-center gap-2">
           <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-success" />
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${tracker.isLocating ? 'bg-warning' : 'bg-success'} opacity-75`} />
+            <span className={`relative inline-flex rounded-full h-3 w-3 ${tracker.isLocating ? 'bg-warning' : 'bg-success'}`} />
           </span>
-          <span className="font-bold text-text-primary text-sm">Tracking Active</span>
+          <span className="font-bold text-text-primary text-sm">
+            {tracker.isLocating ? 'Locating starting point...' : 'Tracking Active'}
+          </span>
         </div>
-        <div className="flex items-center gap-4 text-sm font-mono">
-          <span className="text-text-secondary">{fmtTime(tracker.elapsedMs)}</span>
-          <span className="text-accent font-bold">{distKm} km</span>
-          {expanded ? <ChevronUp size={16} className="text-text-tertiary" /> : <ChevronDown size={16} className="text-text-tertiary" />}
-        </div>
+        {!tracker.isLocating && (
+          <div className="flex items-center gap-4 text-sm font-mono">
+            <span className="text-text-secondary">{fmtTime(tracker.elapsedMs)}</span>
+            <span className="text-accent font-bold">{distKm} km</span>
+            {expanded ? <ChevronUp size={16} className="text-text-tertiary" /> : <ChevronDown size={16} className="text-text-tertiary" />}
+          </div>
+        )}
       </button>
 
       {expanded && (
@@ -208,10 +214,15 @@ export default function OutdoorTracker() {
             <StatCard icon={<Timer size={16} />} label="Time" value={fmtTime(tracker.elapsedMs)} />
             <StatCard icon={<Route size={16} />} label="Distance" value={`${distKm} km`} />
             <StatCard icon={<Gauge size={16} />} label="Speed" value={`${tracker.currentSpeed.toFixed(1)} km/h`} />
-            <StatCard icon={<TrendingUp size={16} />} label="Avg Speed" value={`${tracker.averageSpeed.toFixed(1)} km/h`} />
+            <StatCard 
+              icon={<TrendingUp size={16} />} 
+              label="Calories" 
+              value={`${Math.round(tracker.calories)} kcal`} 
+            />
             {pedometer.steps > 0 && (
               <StatCard icon={<Footprints size={16} />} label="Steps" value={pedometer.steps.toLocaleString()} />
             )}
+            <StatCard icon={<TrendingUp size={16} />} label="Avg Speed" value={`${tracker.averageSpeed.toFixed(1)} km/h`} />
           </div>
 
           {/* Controls */}
