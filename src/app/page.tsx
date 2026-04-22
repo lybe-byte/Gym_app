@@ -205,7 +205,8 @@ export default function HomePage() {
   const latestRun = runs.length > 0 ? runs[0] : null;
 
   return (
-    <div className="pt-6 pb-20 animate-fade-in flex flex-col gap-6">
+    <>
+      <div className="pt-6 pb-20 animate-fade-in flex flex-col gap-6">
       {/* ─── Weekly Summary & Goals ───────────────────────── */}
       <section>
         <GoalsPanel 
@@ -370,7 +371,9 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ─── Delete Run Confirmation ──────────────────────── */}
+      </div>
+
+      {/* Modals outside the animated container to fix fixed positioning on scroll */}
       <ConfirmDialog
         open={confirmDeleteRun}
         title="Are you sure?"
@@ -380,7 +383,6 @@ export default function HomePage() {
         onCancel={() => setConfirmDeleteRun(false)}
       />
 
-      {/* ─── Toast ────────────────────────────────────────── */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
           <div className="bg-bg-secondary border border-border-color rounded-xl px-5 py-3 shadow-card-shadow-lg flex items-center gap-3">
@@ -400,7 +402,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ─── Daily Breakdowns Dialog ──────────────────────── */}
       <DailyStatsDialog 
         isOpen={activeMetric !== null}
         onClose={() => setActiveMetric(null)}
@@ -408,7 +409,7 @@ export default function HomePage() {
         stepsData={steps}
         runsData={runs}
       />
-    </div>
+    </>
   );
 }
 

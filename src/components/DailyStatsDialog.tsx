@@ -58,7 +58,7 @@ export default function DailyStatsDialog({ isOpen, onClose, metric, stepsData, r
   const config = metricConfig[metric];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-bg-primary/80 backdrop-blur-sm animate-fade-in print:hidden p-4 pt-[15dvh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-bg-primary/80 backdrop-blur-sm animate-fade-in print:hidden p-4 pt-[12dvh]">
       <div 
         className="bg-bg-secondary w-full max-w-md rounded-2xl p-6 border border-border-color shadow-[0_0_40px_rgba(0,0,0,0.5)] animate-slide-up"
       >
