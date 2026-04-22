@@ -9,12 +9,12 @@ import MacroRings from '@/components/MacroRings';
 import { 
   Utensils, 
   Sparkles, 
-  Plus, 
   Trash2, 
   History,
   Info,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import type { FoodItem, NutritionLog } from '@/types';
 
@@ -25,6 +25,7 @@ export default function NutritionPage() {
   const [userInput, setUserInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [currentDate, setCurrentDate] = useState(todayDateString());
 
   // Goals based on current weight
   const goals = useMemo(() => {
@@ -37,11 +38,24 @@ export default function NutritionPage() {
 
   useEffect(() => {
     if (!user) return;
-    getNutritionLog(user.uid, todayDateString()).then((data) => {
-      if (data) setLog(data);
+    setLoading(true);
+    getNutritionLog(user.uid, currentDate).then((data) => {
+      setLog(data || null);
       setLoading(false);
     });
-  }, [user]);
+  }, [user, currentDate]);
+
+  const handlePrevDay = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - 1);
+    setCurrentDate(d.toISOString().slice(0, 10));
+  };
+
+  const handleNextDay = () => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() + 1);
+    setCurrentDate(d.toISOString().slice(0, 10));
+  };
 
   const handleAnalyze = async () => {
     if (!user || !userInput.trim() || analyzing) return;
@@ -55,8 +69,8 @@ export default function NutritionPage() {
       }
 
       const currentLog = log || {
-        id: todayDateString(),
-        date: todayDateString(),
+        id: currentDate,
+        date: currentDate,
         totalCalories: 0,
         totalProtein: 0,
         totalCarbs: 0,
@@ -125,6 +139,28 @@ export default function NutritionPage() {
         </div>
       </header>
 
+      {/* Date Navigator */}
+      <div className="flex items-center justify-between bg-bg-secondary border border-border-color rounded-2xl p-2 select-none">
+        <button 
+          onClick={handlePrevDay}
+          className="p-3 text-text-secondary hover:text-accent active:scale-95 transition-all"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <div className="flex flex-col items-center">
+          <span className="text-sm font-bold text-text-primary">
+            {currentDate === todayDateString() ? "Today" : new Date(currentDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+        <button 
+          onClick={handleNextDay}
+          disabled={currentDate === todayDateString()}
+          className="p-3 text-text-secondary hover:text-accent active:scale-95 disabled:opacity-30 disabled:hover:text-text-secondary transition-all"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
       {/* Progress Chart Card */}
       <section className="bg-bg-secondary rounded-3xl border border-border-color shadow-card-shadow p-6 flex flex-col items-center gap-6 relative overflow-hidden">
         <div className="absolute top-4 right-4 group">
@@ -180,11 +216,11 @@ export default function NutritionPage() {
         </div>
       </section>
 
-      {/* Today's History */}
+      {/* History Area */}
       <section className="bg-bg-secondary rounded-3xl border border-border-color shadow-card-shadow p-6">
         <div className="flex items-center gap-2 mb-4 text-sm font-bold text-text-secondary">
           <History size={16} />
-          <span>Today's Items</span>
+          <span>{currentDate === todayDateString() ? "Today's Items" : "Logged Items"}</span>
         </div>
         
         <div className="space-y-3">
